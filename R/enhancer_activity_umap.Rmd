@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
-```{r seurat_object}
+```{r loading_data, include=FALSE}
 library(Seurat)
 
 #https://rdrr.io/github/qenvio/dryhic/src/R/logpseudo.R
@@ -23,19 +23,41 @@ pseudo <- function(x) {
 
 enhancer_df <- pseudo(read.csv(url("http://users.wenglab.org/moorej3/Yu-Project/Mouse-Enhancer-Matrix.txt"), sep = "\t", row.names=1))
 
+#Creating Metadata
+colnames(enhancer_df)
+tissue <- c(rep("embryonic_facial_prominence", 5), 
+            rep("forebrain", 7), 
+            rep("heart", 7), 
+            rep("hindbrain", 7), 
+            rep("intestine", 4),
+            rep("kidney", 4),
+            rep("limb", 5),
+            rep("liver", 7),
+            rep("lung", 4),
+            rep("midbrain", 7),
+            rep("neural_tube", 5),
+            rep("stomach", 4))
+
+time_points <- gsub(".*_(\\d+(?:\\.\\d+)?)_days", "\\1", colnames(enhancer_df))
+```
+
+
+```{r seurat_object}
+#Create Seurat Object
 enhancer_seurat <- CreateSeuratObject(counts = enhancer_df, 
                                  project = "UMAP of enhancer activity",
-                                 meta.data = data.frame(CellID = colnames(enhancer_df)),
                                  assay = "enhancer",
                                  features = rownames(enhancer_df))
 
-# Preprocess and normalize the data
-#enhancer_seurat <- subset(enhancer_seurat, subset = !is.na(enhancer_seurat@assays$enhancer@counts))
+enhancer_seurat <- AddMetaData(enhancer_seurat, metadata = tissue, col.name = "tissue")
+enhancer_seurat <- AddMetaData(enhancer_seurat, metadata = time_points, col.name = "time_points")
 
+# Preprocess and normalize the data
 enhancer_seurat <- NormalizeData(enhancer_seurat)
 enhancer_seurat <- FindVariableFeatures(enhancer_seurat)
 enhancer_seurat <- ScaleData(enhancer_seurat)
 
+#Run PCA and UMAP
 enhancer_seurat <- RunPCA(enhancer_seurat, features = VariableFeatures(object = enhancer_seurat), npcs = 30)
 
 enhancer_seurat <- RunUMAP(enhancer_seurat, reduction = "pca", dims = 1:10)
@@ -44,7 +66,22 @@ enhancer_seurat <- RunUMAP(enhancer_seurat, reduction = "pca", dims = 1:10)
 ## UMAP Plot
 
 ```{r UMAP_plot, echo=FALSE}
-UMAPPlot(enhancer_seurat, label = TRUE)
+group_colors <- c("forebrain" = "aquamarine2", 
+                  "midbrain" = "seagreen", 
+                  "hindbrain" = "green",
+                  "neural_tube" = "darkolivegreen3",
+                  "embryonic_facial_prominence" = "orange",
+                  "lung" = "darkgray",
+                  "heart" = "black", 
+                  "kidney" = "cyan",
+                  "liver" = "blue",
+                  "limb" = "darkorange4",
+                  "stomach" = "magenta", 
+                  "intestine" = "red")
+#group_colors = c("orange","red","black","tomato2","blue","green","purple","seagreen","darkgray","firebrick","magenta","cadetblue1")
+
+UMAPPlot(enhancer_seurat, group.by = "tissue", cols = group_colors, pt.size = 1.5)
+UMAPPlot(enhancer_seurat, group.by = "time_points")
 ```
 
 

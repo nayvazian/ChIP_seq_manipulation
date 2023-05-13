@@ -1,3 +1,19 @@
+---
+title: "Enhancer Activity UMAP"
+author: "Nicholas Ayvazian"
+date: "2023-05-13"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r seurat_object}
 library(Seurat)
 
 #https://rdrr.io/github/qenvio/dryhic/src/R/logpseudo.R
@@ -16,7 +32,6 @@ enhancer_seurat <- CreateSeuratObject(counts = enhancer_df,
 # Preprocess and normalize the data
 #enhancer_seurat <- subset(enhancer_seurat, subset = !is.na(enhancer_seurat@assays$enhancer@counts))
 
-
 enhancer_seurat <- NormalizeData(enhancer_seurat)
 enhancer_seurat <- FindVariableFeatures(enhancer_seurat)
 enhancer_seurat <- ScaleData(enhancer_seurat)
@@ -24,5 +39,12 @@ enhancer_seurat <- ScaleData(enhancer_seurat)
 enhancer_seurat <- RunPCA(enhancer_seurat, features = VariableFeatures(object = enhancer_seurat), npcs = 30)
 
 enhancer_seurat <- RunUMAP(enhancer_seurat, reduction = "pca", dims = 1:10)
+```
 
+## UMAP Plot
+
+```{r UMAP_plot, echo=FALSE}
 UMAPPlot(enhancer_seurat, label = TRUE)
+```
+
+

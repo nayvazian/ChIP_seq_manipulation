@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r loading_data, include=FALSE}
 library(Seurat)
+library(ggplot2)
 
 #https://rdrr.io/github/qenvio/dryhic/src/R/logpseudo.R
 pseudo <- function(x) {
@@ -38,11 +39,12 @@ tissue <- c(rep("embryonic_facial_prominence", 5),
             rep("neural_tube", 5),
             rep("stomach", 4))
 
-time_points <- gsub(".*_(\\d+(?:\\.\\d+)?)_days", "\\1", colnames(enhancer_df))
+time_points <- gsub(".*?(embryo|postnatal)", "\\1", colnames(enhancer_df))
+
 ```
 
 
-```{r seurat_object}
+```{r seurat_object, include=FALSE}
 #Create Seurat Object
 enhancer_seurat <- CreateSeuratObject(counts = enhancer_df, 
                                  project = "UMAP of enhancer activity",
@@ -60,28 +62,51 @@ enhancer_seurat <- ScaleData(enhancer_seurat)
 #Run PCA and UMAP
 enhancer_seurat <- RunPCA(enhancer_seurat, features = VariableFeatures(object = enhancer_seurat), npcs = 30)
 
-enhancer_seurat <- RunUMAP(enhancer_seurat, reduction = "pca", dims = 1:10)
+enhancer_seurat <- RunUMAP(enhancer_seurat, reduction = "pca", dims = 1:10,n.neighbors = 50)
+```
+```{r elbow_plot, echo=FALSE}
+ElbowPlot(enhancer_seurat, ndims = 20, reduction = "pca")
 ```
 
 ## UMAP Plot
 
-```{r UMAP_plot, echo=FALSE}
-group_colors <- c("forebrain" = "aquamarine2", 
+```{r umap_plot, echo=FALSE}
+tissue_colors <- c("forebrain" = "aquamarine2", 
                   "midbrain" = "seagreen", 
                   "hindbrain" = "green",
-                  "neural_tube" = "darkolivegreen3",
+                  "neural_tube" = "cyan",
                   "embryonic_facial_prominence" = "orange",
                   "lung" = "darkgray",
-                  "heart" = "black", 
-                  "kidney" = "cyan",
-                  "liver" = "blue",
+                  "heart" = "blue", 
+                  "kidney" = "black",
+                  "liver" = "purple",
                   "limb" = "darkorange4",
                   "stomach" = "magenta", 
                   "intestine" = "red")
-#group_colors = c("orange","red","black","tomato2","blue","green","purple","seagreen","darkgray","firebrick","magenta","cadetblue1")
 
-UMAPPlot(enhancer_seurat, group.by = "tissue", cols = group_colors, pt.size = 1.5)
-UMAPPlot(enhancer_seurat, group.by = "time_points")
+tissue_order <- c("forebrain", "midbrain","hindbrain","neural_tube","embryonic_facial_prominence","limb","lung","stomach","intestine","kidney","liver","heart")
+enhancer_seurat$tissue <- factor(enhancer_seurat$tissue, levels = tissue_order)
+
+time_colors <- c("embryo_11.5_days" = "gray90", 
+                 "embryo_12.5_days" = "gray80", 
+                 "embryo_13.5_days" = "gray70",
+                 "embryo_14.5_days" = "gray55",
+                 "embryo_15.5_days" = "gray40",
+                 "embryo_16.5_days" = "gray25",
+                 "postnatal_0_days" = "black")
+
+time_order <- c("embryo_11.5_days","embryo_12.5_days","embryo_14.5_days","embryo_15.5_days","embryo_16.5_days","postnatal_0_days")
+enhancer_seurat$time_points <- factor(enhancer_seurat$time_points, levels = time_order)
+
+
+tissue_umap <- UMAPPlot(enhancer_seurat, group.by = "tissue", cols = tissue_colors, pt.size = 3)
+tissue_umap <- tissue_umap + labs(title = "")
+#tissue_umap <- tissue_umap + theme(plot.subtitle = element_text(margin = margin(0, 0, -20, 0)))
+print(tissue_umap)
+
+time_umap <- UMAPPlot(enhancer_seurat, group.by = "time_points", cols = time_colors, pt.size = 3)
+time_umap <- time_umap + labs(title = "")
+print(time_umap)
 ```
 
 
